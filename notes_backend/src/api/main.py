@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -41,11 +42,15 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
+# Allow configuring CORS in hosted environments.
+# - Default is "*" for simple dev/testing (Authorization header still allowed).
+# - To lock down, set e.g. CORS_ALLOW_ORIGINS="https://your-frontend.example.com,https://other.example.com"
+_allow_origins_env = os.getenv("CORS_ALLOW_ORIGINS", "*").strip()
+_allow_origins = ["*"] if _allow_origins_env == "*" else [o.strip() for o in _allow_origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    # Frontend is statically exported and can be served from different hosts in dev;
-    # allow all origins but keep auth via Bearer token (not cookies).
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

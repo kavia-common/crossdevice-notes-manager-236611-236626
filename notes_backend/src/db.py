@@ -20,10 +20,22 @@ def _build_conninfo() -> str:
     """
     Build a PostgreSQL connection string from the DB container contract env vars.
 
-    Contract:
+    Contract (preferred):
       POSTGRES_URL, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT
+
+    Compatibility note:
+      In some deployments, `POSTGRES_URL` may already be provided as a full DSN
+      like: postgresql://user:pass@host:port/db (or postgres://...).
+      In that case, we use it as-is to avoid double-assembling an invalid DSN.
     """
-    host = _required_env("POSTGRES_URL")
+    postgres_url = _required_env("POSTGRES_URL").strip()
+
+    # If POSTGRES_URL is already a DSN, trust it.
+    if postgres_url.startswith("postgresql://") or postgres_url.startswith("postgres://"):
+        return postgres_url
+
+    # Otherwise treat POSTGRES_URL as hostname per contract.
+    host = postgres_url
     user = _required_env("POSTGRES_USER")
     password = _required_env("POSTGRES_PASSWORD")
     db = _required_env("POSTGRES_DB")
